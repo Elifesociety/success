@@ -1,25 +1,9 @@
 /*
-  # Create categories table for managing category fees and images
-
-  1. New Tables
-    - `categories`
-      - `id` (text, primary key)
-      - `name` (text, not null)
-      - `description` (text)
-      - `actual_fee` (numeric, default 0)
-      - `offer_fee` (numeric, default 0)
-      - `image` (text) - URL to category image
-      - `features` (jsonb) - Array of features
-      - `is_active` (boolean, default true)
-      - `created_at` (timestamp)
-      - `updated_at` (timestamp)
-
-  2. Security
-    - Enable RLS on `categories` table
-    - Add policy for public read access
-    - Add policy for admin write access
+  Migration: Create categories table for managing category fees and images
+  Adds security policies and triggers
 */
 
+-- 1. Create categories table
 CREATE TABLE IF NOT EXISTS categories (
   id text PRIMARY KEY,
   name text NOT NULL,
@@ -33,23 +17,24 @@ CREATE TABLE IF NOT EXISTS categories (
   updated_at timestamptz DEFAULT now()
 );
 
+-- 2. Enable Row Level Security
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 
--- Allow public read access to active categories
+-- 3. Public policy: only read active categories
 CREATE POLICY "Public can read active categories"
   ON categories
   FOR SELECT
   TO public
   USING (is_active = true);
 
--- Allow authenticated users to read all categories
+-- 4. Authenticated policy: read all categories
 CREATE POLICY "Authenticated users can read all categories"
   ON categories
   FOR SELECT
   TO authenticated
   USING (true);
 
--- Allow authenticated users to manage categories (for admin panel)
+-- 5. Authenticated policy: manage categories
 CREATE POLICY "Authenticated users can manage categories"
   ON categories
   FOR ALL
@@ -57,16 +42,17 @@ CREATE POLICY "Authenticated users can manage categories"
   USING (true)
   WITH CHECK (true);
 
--- Create trigger to update updated_at timestamp
+-- 6. Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at = now();
-    RETURN NEW;
+  NEW.updated_at = now();
+  RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ language plpgsql;
 
+-- 7. Create trigger for updated_at
 CREATE TRIGGER update_categories_updated_at
-    BEFORE UPDATE ON categories
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+  BEFORE UPDATE ON categories
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();

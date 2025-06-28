@@ -16,6 +16,7 @@ export type Database = {
           password: string
           permissions: string
           role: string
+          status: string
           username: string
         }
         Insert: {
@@ -24,6 +25,7 @@ export type Database = {
           password: string
           permissions: string
           role: string
+          status?: string
           username: string
         }
         Update: {
@@ -32,7 +34,47 @@ export type Database = {
           password?: string
           permissions?: string
           role?: string
+          status?: string
           username?: string
+        }
+        Relationships: []
+      }
+      categories: {
+        Row: {
+          actual_fee: number | null
+          created_at: string | null
+          description: string | null
+          features: Json | null
+          id: string
+          image: string | null
+          is_active: boolean | null
+          name: string
+          offer_fee: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          actual_fee?: number | null
+          created_at?: string | null
+          description?: string | null
+          features?: Json | null
+          id: string
+          image?: string | null
+          is_active?: boolean | null
+          name: string
+          offer_fee?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          actual_fee?: number | null
+          created_at?: string | null
+          description?: string | null
+          features?: Json | null
+          id?: string
+          image?: string | null
+          is_active?: boolean | null
+          name?: string
+          offer_fee?: number | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -60,32 +102,44 @@ export type Database = {
       registrations: {
         Row: {
           address: string
+          agent_details: string | null
           category: string
           created_at: string
+          customer_id: string | null
+          fee_amount: number | null
           id: string
           mobile: string
           name: string
           panchayath: string
+          status: string | null
           ward: string
         }
         Insert: {
           address: string
+          agent_details?: string | null
           category: string
           created_at?: string
+          customer_id?: string | null
+          fee_amount?: number | null
           id?: string
           mobile: string
           name: string
           panchayath: string
+          status?: string | null
           ward: string
         }
         Update: {
           address?: string
+          agent_details?: string | null
           category?: string
           created_at?: string
+          customer_id?: string | null
+          fee_amount?: number | null
           id?: string
           mobile?: string
           name?: string
           panchayath?: string
+          status?: string | null
           ward?: string
         }
         Relationships: []

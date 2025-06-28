@@ -21,7 +21,7 @@ const RegistrationForm = ({ selectedCategory, onBack }: RegistrationFormProps) =
     mobile: '',
     panchayath: '',
     ward: '',
-    agentDetails: ''
+    agent_details: ''
   });
   const [panchayaths, setPanchayaths] = useState<Array<{id: string, name: string, district: string}>>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -92,6 +92,16 @@ const RegistrationForm = ({ selectedCategory, onBack }: RegistrationFormProps) =
       return;
     }
 
+    // Mobile number validation
+    if (!/^\d{10}$/.test(formData.mobile)) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid 10-digit mobile number",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Check for duplicate registration
     const isDuplicate = await checkDuplicateRegistration(formData.mobile);
     if (isDuplicate) {
@@ -114,11 +124,16 @@ const RegistrationForm = ({ selectedCategory, onBack }: RegistrationFormProps) =
       const customerId = generateCustomerId(formData.mobile, formData.name);
       
       const registrationData = {
-        ...formData,
+        name: formData.name,
+        address: formData.address,
+        mobile: formData.mobile,
+        panchayath: formData.panchayath,
+        ward: formData.ward,
+        agent_details: formData.agent_details || null,
         category: selectedCategory.name,
         customer_id: customerId,
         status: 'pending',
-        fee_amount: selectedCategory.offerFee
+        fee_amount: selectedCategory.offer_fee || selectedCategory.offerFee || 0
       };
 
       const { error } = await supabase
@@ -143,7 +158,7 @@ const RegistrationForm = ({ selectedCategory, onBack }: RegistrationFormProps) =
           mobile: '',
           panchayath: '',
           ward: '',
-          agentDetails: ''
+          agent_details: ''
         });
       }
     } catch (error) {
@@ -156,6 +171,14 @@ const RegistrationForm = ({ selectedCategory, onBack }: RegistrationFormProps) =
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const getFeeAmount = () => {
+    return selectedCategory.offer_fee || selectedCategory.offerFee || 0;
+  };
+
+  const getActualFeeAmount = () => {
+    return selectedCategory.actual_fee || selectedCategory.actualFee || 0;
   };
 
   return (
@@ -171,9 +194,9 @@ const RegistrationForm = ({ selectedCategory, onBack }: RegistrationFormProps) =
             </Button>
           </div>
           <div className="text-sm opacity-90">
-            Fee: {selectedCategory.offerFee === 0 ? 'FREE' : `₹${selectedCategory.offerFee}`}
-            {selectedCategory.actualFee > selectedCategory.offerFee && (
-              <span className="ml-2 line-through opacity-75">₹{selectedCategory.actualFee}</span>
+            Fee: {getFeeAmount() === 0 ? 'FREE' : `₹${getFeeAmount()}`}
+            {getActualFeeAmount() > getFeeAmount() && (
+              <span className="ml-2 line-through opacity-75">₹{getActualFeeAmount()}</span>
             )}
           </div>
         </CardHeader>
@@ -210,8 +233,9 @@ const RegistrationForm = ({ selectedCategory, onBack }: RegistrationFormProps) =
                 type="tel"
                 value={formData.mobile}
                 onChange={(e) => setFormData({...formData, mobile: e.target.value})}
-                placeholder="Enter your mobile number"
+                placeholder="Enter your 10-digit mobile number"
                 pattern="[0-9]{10}"
+                maxLength={10}
                 required
               />
             </div>
@@ -244,11 +268,11 @@ const RegistrationForm = ({ selectedCategory, onBack }: RegistrationFormProps) =
             </div>
 
             <div>
-              <Label htmlFor="agentDetails">Agent/P.R.O Details</Label>
+              <Label htmlFor="agent_details">Agent/P.R.O Details</Label>
               <Textarea
-                id="agentDetails"
-                value={formData.agentDetails}
-                onChange={(e) => setFormData({...formData, agentDetails: e.target.value})}
+                id="agent_details"
+                value={formData.agent_details}
+                onChange={(e) => setFormData({...formData, agent_details: e.target.value})}
                 placeholder="Enter agent or P.R.O details (optional)"
                 rows={2}
               />
@@ -279,7 +303,7 @@ const RegistrationForm = ({ selectedCategory, onBack }: RegistrationFormProps) =
                 <p><strong>Name:</strong> {formData.name}</p>
                 <p><strong>Mobile:</strong> {formData.mobile}</p>
                 <p><strong>Panchayath:</strong> {formData.panchayath}</p>
-                <p><strong>Fee:</strong> {selectedCategory.offerFee === 0 ? 'FREE' : `₹${selectedCategory.offerFee}`}</p>
+                <p><strong>Fee:</strong> {getFeeAmount() === 0 ? 'FREE' : `₹${getFeeAmount()}`}</p>
               </div>
             </div>
             <div className="flex space-x-2">
@@ -307,6 +331,9 @@ const RegistrationForm = ({ selectedCategory, onBack }: RegistrationFormProps) =
                   src={selectedCategory.image} 
                   alt={selectedCategory.name}
                   className="max-h-full max-w-full object-contain"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
                 />
               </div>
             )}

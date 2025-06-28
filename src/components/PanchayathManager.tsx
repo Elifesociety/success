@@ -1,11 +1,12 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Edit, Trash2 } from 'lucide-react';
 
 interface PanchayathManagerProps {
   userRole: string;
@@ -21,6 +22,8 @@ const PanchayathManager = ({ userRole }: PanchayathManagerProps) => {
   const [newPanchayath, setNewPanchayath] = useState({ name: '', district: '' });
   const [panchayaths, setPanchayaths] = useState<Panchayath[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [editingPanchayath, setEditingPanchayath] = useState<Panchayath | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   const canEdit = userRole !== 'User Admin';
 
@@ -72,7 +75,7 @@ const PanchayathManager = ({ userRole }: PanchayathManagerProps) => {
   const handleAdd = async () => {
     if (!canEdit) return;
     
-    if (!newPanchayath.name || !newPanchayath.district) {
+    if (!newPanchayath.name.trim() || !newPanchayath.district.trim()) {
       toast({
         title: "Error",
         description: "Please fill both name and district fields.",
@@ -84,7 +87,10 @@ const PanchayathManager = ({ userRole }: PanchayathManagerProps) => {
     try {
       const { error } = await supabase
         .from('panchayaths')
-        .insert([newPanchayath]);
+        .insert([{
+          name: newPanchayath.name.trim(),
+          district: newPanchayath.district.trim()
+        }]);
 
       if (error) {
         console.error('Error adding panchayath:', error);
@@ -106,8 +112,57 @@ const PanchayathManager = ({ userRole }: PanchayathManagerProps) => {
     }
   };
 
+  const handleEdit = (panchayath: Panchayath) => {
+    setEditingPanchayath(panchayath);
+    setShowEditDialog(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingPanchayath || !canEdit) return;
+
+    if (!editingPanchayath.name.trim() || !editingPanchayath.district.trim()) {
+      toast({
+        title: "Error",
+        description: "Please fill both name and district fields.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('panchayaths')
+        .update({
+          name: editingPanchayath.name.trim(),
+          district: editingPanchayath.district.trim()
+        })
+        .eq('id', editingPanchayath.id);
+
+      if (error) {
+        console.error('Error updating panchayath:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update panchayath.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Panchayath updated successfully!",
+        });
+        setShowEditDialog(false);
+        setEditingPanchayath(null);
+        fetchPanchayaths();
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!canEdit) return;
+    
+    if (!confirm('Are you sure you want to delete this panchayath?')) return;
     
     try {
       const { error } = await supabase
@@ -163,74 +218,128 @@ const PanchayathManager = ({ userRole }: PanchayathManagerProps) => {
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Add New Panchayath</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="panchayath-name">Panchayath Name</Label>
-              <Input
-                id="panchayath-name"
-                value={newPanchayath.name}
-                onChange={(e) => setNewPanchayath({...newPanchayath, name: e.target.value})}
-                placeholder="Enter Panchayath name"
-              />
+    <>
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Add New Panchayath</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="panchayath-name">Panchayath Name</Label>
+                <Input
+                  id="panchayath-name"
+                  value={newPanchayath.name}
+                  onChange={(e) => setNewPanchayath({...newPanchayath, name: e.target.value})}
+                  placeholder="Enter Panchayath name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="district-name">District</Label>
+                <Input
+                  id="district-name"
+                  value={newPanchayath.district}
+                  onChange={(e) => setNewPanchayath({...newPanchayath, district: e.target.value})}
+                  placeholder="Enter District name"
+                />
+              </div>
             </div>
-            <div>
-              <Label htmlFor="district-name">District</Label>
-              <Input
-                id="district-name"
-                value={newPanchayath.district}
-                onChange={(e) => setNewPanchayath({...newPanchayath, district: e.target.value})}
-                placeholder="Enter District name"
-              />
-            </div>
-          </div>
-          <Button onClick={handleAdd} className="mt-4">
-            Add Panchayath
-          </Button>
-        </CardContent>
-      </Card>
+            <Button onClick={handleAdd} className="mt-4">
+              Add Panchayath
+            </Button>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Existing Panchayaths</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2">Panchayath Name</th>
-                  <th className="text-left p-2">District</th>
-                  <th className="text-left p-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {panchayaths.map((panchayath) => (
-                  <tr key={panchayath.id} className="border-b hover:bg-gray-50">
-                    <td className="p-2 font-medium">{panchayath.name}</td>
-                    <td className="p-2">{panchayath.district}</td>
-                    <td className="p-2">
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(panchayath.id)}
-                      >
-                        Delete
-                      </Button>
-                    </td>
+        <Card>
+          <CardHeader>
+            <CardTitle>Existing Panchayaths</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-2">Panchayath Name</th>
+                    <th className="text-left p-2">District</th>
+                    <th className="text-left p-2">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+                </thead>
+                <tbody>
+                  {panchayaths.map((panchayath) => (
+                    <tr key={panchayath.id} className="border-b hover:bg-gray-50">
+                      <td className="p-2 font-medium">{panchayath.name}</td>
+                      <td className="p-2">{panchayath.district}</td>
+                      <td className="p-2">
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(panchayath)}
+                          >
+                            <Edit className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDelete(panchayath.id)}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Panchayath</DialogTitle>
+          </DialogHeader>
+          {editingPanchayath && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-name">Panchayath Name</Label>
+                <Input
+                  id="edit-name"
+                  value={editingPanchayath.name}
+                  onChange={(e) => setEditingPanchayath({
+                    ...editingPanchayath,
+                    name: e.target.value
+                  })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-district">District</Label>
+                <Input
+                  id="edit-district"
+                  value={editingPanchayath.district}
+                  onChange={(e) => setEditingPanchayath({
+                    ...editingPanchayath,
+                    district: e.target.value
+                  })}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

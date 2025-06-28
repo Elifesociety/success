@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -14,6 +14,7 @@ interface AdminUser {
   username: string;
   role: string;
   permissions: string;
+  status: string;
   created_at: string;
 }
 
@@ -33,7 +34,7 @@ const AdminRoleTable = ({ userRole }: AdminRoleTableProps) => {
     try {
       const { data, error } = await supabase
         .from('admin_users')
-        .select('id, username, role, permissions, created_at')
+        .select('id, username, role, permissions, status, created_at')
         .order('created_at');
 
       if (error) {
@@ -50,6 +51,34 @@ const AdminRoleTable = ({ userRole }: AdminRoleTableProps) => {
       console.error('Error:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleStatusToggle = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    
+    try {
+      const { error } = await supabase
+        .from('admin_users')
+        .update({ status: newStatus })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error updating admin status:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update admin status.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Status Updated",
+          description: `Admin ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully.`,
+        });
+        fetchAdminUsers();
+      }
+    } catch (error) {
+      console.error('Error:', error);
     }
   };
 
@@ -98,6 +127,7 @@ const AdminRoleTable = ({ userRole }: AdminRoleTableProps) => {
                 <th className="text-left p-3">Role</th>
                 <th className="text-left p-3">Permissions</th>
                 <th className="text-left p-3">Status</th>
+                <th className="text-left p-3">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -114,9 +144,24 @@ const AdminRoleTable = ({ userRole }: AdminRoleTableProps) => {
                   </td>
                   <td className="p-3 text-sm text-gray-600">{admin.permissions}</td>
                   <td className="p-3">
-                    <Badge variant="outline" className="bg-green-50 text-green-700">
-                      Active
+                    <Badge 
+                      variant="outline" 
+                      className={admin.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}
+                    >
+                      {admin.status === 'active' ? 'Active' : 'Inactive'}
                     </Badge>
+                  </td>
+                  <td className="p-3">
+                    {admin.role !== 'Super Admin' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleStatusToggle(admin.id, admin.status)}
+                        className={admin.status === 'active' ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}
+                      >
+                        {admin.status === 'active' ? 'Deactivate' : 'Activate'}
+                      </Button>
+                    )}
                   </td>
                 </tr>
               ))}

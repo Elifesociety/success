@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import CategoryCard from '../components/CategoryCard';
-import RegistrationForm from '../components/RegistrationForm';
 import Navigation from '../components/Navigation';
+import CategoryCard from '../components/CategoryCard';
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 const defaultCategories = [
@@ -102,8 +101,7 @@ const defaultCategories = [
   }
 ];
 
-const Registration = () => {
-  const [selectedCategory, setSelectedCategory] = useState<any>(null);
+const Categories = () => {
   const [categories, setCategories] = useState(defaultCategories);
 
   useEffect(() => {
@@ -126,22 +124,6 @@ const Registration = () => {
     }
   };
 
-  if (selectedCategory) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <Navigation />
-        <div className="py-8 px-4">
-          <div className="max-w-2xl mx-auto">
-            <RegistrationForm 
-              selectedCategory={selectedCategory} 
-              onBack={() => setSelectedCategory(null)} 
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <Navigation />
@@ -149,11 +131,16 @@ const Registration = () => {
         <div className="max-w-6xl mx-auto">
           <div className="mb-8 text-center">
             <h1 className="text-3xl font-bold text-gray-900 mb-4">
-              Choose Your Registration Category
+              Our Categories
             </h1>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Select the category that best fits your self-employment needs. Each category offers unique features and benefits.
+            <p className="text-gray-600 max-w-2xl mx-auto mb-6">
+              Explore our comprehensive range of self-employment categories designed to empower your entrepreneurial journey.
             </p>
+            <Link to="/registration">
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                Start Registration
+              </Button>
+            </Link>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -161,16 +148,10 @@ const Registration = () => {
               <CategoryCard
                 key={category.id}
                 category={category}
-                onSelect={setSelectedCategory}
-                isSelected={selectedCategory?.id === category.id}
+                onSelect={() => {}}
+                isSelected={false}
               />
             ))}
-          </div>
-          
-          <div className="mt-8 text-center">
-            <p className="text-sm text-gray-500">
-              Note: You can apply to only one category at a time. Job Card provides access to all categories.
-            </p>
           </div>
         </div>
       </div>
@@ -178,4 +159,4 @@ const Registration = () => {
   );
 };
 
-export default Registration;
+export default Categories;
